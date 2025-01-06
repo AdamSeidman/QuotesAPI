@@ -3,10 +3,14 @@ const { copyObject, randomArrayItem } = require('poop-sock')
 
 var allQuotes = []
 
+const getDB = () => {
+    return new sqlite3.Database(`${__dirname}\\..\\db\\quotes.db`)
+}
+
 const getAllQuotes = () => {
-    let db = new sqlite3.Database(`${__dirname}\\..\\db\\quotes.db`)
+    let db = getDB()
     const close = db => {
-        if (db) close()
+        if (db) db.close()
     }
     let quotes = []
     return new Promise((resolve, reject) => {
@@ -124,6 +128,42 @@ const getGame = () => {
     return game
 }
 
+const submitQuote = (quote, authors) => {
+    const newQuote = {
+        quote,
+        authors,
+        adminYesCount: 0,
+        adminNoCount: 0,
+        generalYesCount: 0,
+        generalNoCount: 0,
+        isGroup: authors.includes(','),
+        id: allQuotes.length + 1
+    }
+    let db = getDB()
+    return new Promise((resolve, reject) => {
+        db.run(`INSERT INTO Quotes (quote, adminYesCount, adminNoCount, generalYesCount, generalNoCount, isGroup, authors, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                newQuote.quote,
+                0, 0, 0, 0,
+                (newQuote.isGroup? 1 : 0),
+                authors,
+                newQuote.id
+            ], err => {
+                if (db) {
+                    db.close()
+                    delete db
+                }
+                if (err) {
+                    reject(err)
+                } else {
+                    allQuotes.push(newQuote)
+                    console.log(`\tNew Quote Added! (#${newQuote.id})`)
+                    resolve(newQuote)
+                }
+            })
+    })
+}
+
 module.exports = {
     loadQuotes,
     getRandomQuote,
@@ -135,5 +175,6 @@ module.exports = {
             loadQuotes()
         }
         return copyObject(allQuotes)
-    }
+    },
+    submitQuote
 }

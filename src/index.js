@@ -1,9 +1,11 @@
 const fs = require('fs')
 const cors = require('cors')
 const https = require('https')
-const quotes = require('./quotes/quotes')
 const express = require('express')
+const bodyParser = require('body-parser')
+const quotes = require('./quotes/quotes')
 
+// const port = 8008 // TODO remove dev items
 const port = 443
 const maxQuotes = 10
 
@@ -19,6 +21,9 @@ const options = {
 var app = express()
 app.use(cors())
 
+var jsonParser = bodyParser.json()
+
+// var server = require('http').createServer(app).listen(port, '0.0.0.0', () => {
 var server = https.createServer(options, app).listen(port, '0.0.0.0', () => {
     console.log(`Express server listening on port ${port}`)
 })
@@ -116,22 +121,50 @@ const processGET_attributions = () => {
     }
 }
 
+const processPOST_quote = async body => {
+    if (body.quote === undefined || body.authors === undefined) {
+        return 400
+    }
+    let authors = body.authors
+    if (Array.isArray(authors)) {
+        authors = body.authors.join(',')
+    }
+    else if (typeof authors != 'string') {
+        return 422
+    }
+    if (typeof body.quote != 'string') {
+        return 422
+    }
+    try {
+        await quotes.submitQuote(body.quote, authors)
+    } catch (err) {
+        console.error(err)
+        return 500
+    }
+    return 201
+}
+
 const httpGETTable = [
+    { endpoint: 'quote', perms: LEVEL_GENERAL, fn: () => processGET_quotes() },
     { endpoint: 'quotes', perms: LEVEL_GENERAL, fn: processGET_quotes },
     { endpoint: 'game', perms: LEVEL_GENERAL, fn: processGET_game },
     { endpoint: 'leaderboard', perms: LEVEL_GENERAL, fn: processGET_leaderboard },
     { endpoint: 'attributions', perms: LEVEL_GENERAL, fn: processGET_attributions }
 ]
 
+const httpPOSTTable = [
+    { endpoint: 'quote', perms: LEVEL_ADMIN, fn: processPOST_quote }
+]
+
 httpGETTable.forEach(item => {
-    app.get(`/${item.endpoint}`, (request, response) => {
+    app.get(`/${item.endpoint}`, async (request, response) => {
         console.log(`GET ${request.url}`)
         const perms = checkPerms(request, item.perms)
         if (perms !== 200) {
-            console.error(`\tReturn status code: ${perms}`)
+            console.error(`\tReturn status code (Bad Auth): ${perms}`)
             return response.status(perms).json({})
         }
-        const res = item.fn(request.query, request.url)
+        const res = await item.fn(request.query, request.url)
         if (typeof res == 'object') {
             response.send(res)
         }
@@ -139,5 +172,21 @@ httpGETTable.forEach(item => {
             console.error(`\tReturn status code: ${ret}`)
             return response.status(res).json({})
         }
+    })
+})
+
+httpPOSTTable.forEach(item => {
+    app.post(`/${item.endpoint}`, jsonParser, async (request, response) => {
+        console.log(`POST ${request.url}\r\n${JSON.stringify(request.body)}`)
+        const perms = checkPerms(request, item.perms)
+        if (perms !== 200) {
+            console.error(`\tReturn status code (Bad Auth): ${perms}`)
+            return response.status(perms).json({})
+        }
+        const res = await item.fn(request.body, request.query, request.url)
+        if (Math.floor(res / 100) != 2) {
+            console.error(`\tReturn status code: ${perms}`)
+        }
+        return response.status(res).json({})
     })
 })
