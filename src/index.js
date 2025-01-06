@@ -127,19 +127,16 @@ const processGET_search = query => {
         return 400
     }
     let searchStr = stripPunctuation(query.str).replaceAll(' ').trim()
-    if (searchStr < 3) {
-        return {
-            res: 'Too Short!'
-        }
-    }
     let allQuotes = quotes.getAllQuotes()
-    allQuotes.forEach((x, n) => {
-        allQuotes[n].reduced = stripPunctuation(x.quote).replaceAll(' ', '').trim()
-    })
-    allQuotes = allQuotes.filter(x => x.reduced.includes(searchStr))
-    allQuotes.forEach((x, n) => {
-        delete allQuotes[n].reduced
-    })
+    if (searchStr.length > 0) {
+        allQuotes.forEach((x, n) => {
+            allQuotes[n].reduced = stripPunctuation(x.quote).replaceAll(' ', '').trim()
+        })
+        allQuotes = allQuotes.filter(x => x.reduced.includes(searchStr))
+        allQuotes.forEach((x, n) => {
+            delete allQuotes[n].reduced
+        })
+    }
     let res = {
         numQuotes: allQuotes.length,
         quotes: allQuotes
