@@ -4,6 +4,7 @@ const https = require('https')
 const express = require('express')
 const bodyParser = require('body-parser')
 const quotes = require('./quotes/quotes')
+const { stripPunctuation } = require('poop-sock')
 
 // const port = 8008 // TODO remove dev items
 const port = 443
@@ -121,6 +122,31 @@ const processGET_attributions = () => {
     }
 }
 
+const processGET_search = query => {
+    if (query === undefined || typeof query.str != 'string') {
+        return 400
+    }
+    let searchStr = stripPunctuation(query.str).replaceAll(' ').trim()
+    if (searchStr < 3) {
+        return {
+            res: 'Too Short!'
+        }
+    }
+    let allQuotes = quotes.getAllQuotes()
+    allQuotes.forEach((x, n) => {
+        allQuotes[n].reduced = stripPunctuation(x.quote).replaceAll(' ', '').trim()
+    })
+    allQuotes = allQuotes.filter(x => x.reduced.includes(searchStr))
+    allQuotes.forEach((x, n) => {
+        delete allQuotes[n].reduced
+    })
+    let res = {
+        numQuotes: allQuotes.length,
+        quotes: allQuotes
+    }
+    return res
+}
+
 const processPOST_quote = async body => {
     if (body.quote === undefined || body.authors === undefined) {
         return 400
@@ -144,16 +170,49 @@ const processPOST_quote = async body => {
     return 201
 }
 
+const processPOST_restart = () => {
+    setTimeout(() => {
+        process.exit()
+    }, 1000)
+    return 200
+}
+
+const processPOST_vote = async (body, perms) => {
+    if (body.yesId === undefined || body.noId === undefined) {
+        return 400
+    }
+    if (typeof body.yesId != 'number' || typeof body.noId != 'number') {
+        return 422
+    }
+    let numQuotes = quotes.getAllQuotes().length
+    if (yesId < 1 || noId < 1 || yesId > numQuotes || noId > numQuotes) {
+        return 400
+    }
+    if (perms !== LEVEL_ADMIN && perms !== LEVEL_GENERAL) {
+        return 500
+    }
+    try {
+        // await quotes.vote(yesId, noId, (perms === LEVEL_ADMIN)) // TODO
+    } catch (error) {
+        console.error(error)
+        return 500
+    }
+    return 200
+}
+
 const httpGETTable = [
     { endpoint: 'quote', perms: LEVEL_GENERAL, fn: () => processGET_quotes() },
     { endpoint: 'quotes', perms: LEVEL_GENERAL, fn: processGET_quotes },
     { endpoint: 'game', perms: LEVEL_GENERAL, fn: processGET_game },
     { endpoint: 'leaderboard', perms: LEVEL_GENERAL, fn: processGET_leaderboard },
-    { endpoint: 'attributions', perms: LEVEL_GENERAL, fn: processGET_attributions }
+    { endpoint: 'attributions', perms: LEVEL_GENERAL, fn: processGET_attributions },
+    { endpoint: 'search', perms: LEVEL_GENERAL, fn: processGET_search }
 ]
 
 const httpPOSTTable = [
-    { endpoint: 'quote', perms: LEVEL_ADMIN, fn: processPOST_quote }
+    { endpoint: 'quote', perms: LEVEL_ADMIN, fn: processPOST_quote },
+    { endpoint: 'restart', perms: LEVEL_ADMIN, fn: processPOST_restart },
+    { endpoint: 'vote', perms: LEVEL_GENERAL, fn: processPOST_vote }
 ]
 
 httpGETTable.forEach(item => {
@@ -183,7 +242,7 @@ httpPOSTTable.forEach(item => {
             console.error(`\tReturn status code (Bad Auth): ${perms}`)
             return response.status(perms).json({})
         }
-        const res = await item.fn(request.body, request.query, request.url)
+        const res = await item.fn(request.body, perms, request.query, request.url)
         if (Math.floor(res / 100) != 2) {
             console.error(`\tReturn status code: ${perms}`)
         }
