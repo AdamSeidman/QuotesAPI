@@ -72,10 +72,10 @@ app.get('/perms', (request, response) => {
         level: 0
     }
     if (perms === 200) {
-        level = 2
+        resBody.level = 2
     }
     else if (perms === 401) {
-        level = 1
+        resBody.level = 1
     }
     response.send(resBody)
 })
