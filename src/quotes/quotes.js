@@ -1,0 +1,139 @@
+const sqlite3 = require('sqlite3').verbose()
+const { copyObject, randomArrayItem } = require('poop-sock')
+
+var allQuotes = []
+
+const getAllQuotes = () => {
+    let db = new sqlite3.Database(`${__dirname}\\..\\db\\quotes.db`)
+    const close = db => {
+        if (db) close()
+    }
+    let quotes = []
+    return new Promise((resolve, reject) => {
+        db.each(`SELECT * FROM Quotes`, (err, row) => {
+            if (err) {
+                close(db)
+                delete db
+                reject(err)
+            } else {
+                let obj = copyObject(row)
+                obj.isGroup = (row.isGroup !== 0)
+                quotes.push(obj)
+            }
+        }, () => {
+            close(db)
+            delete db
+            resolve(quotes)
+        })
+    })
+}
+
+const loadQuotes = async () => {
+    const loadedText = (allQuotes.length > 0)? 'Re-loaded' : 'Loaded'
+    allQuotes = await getAllQuotes()
+    console.log(`${loadedText} ${allQuotes.length} quotes.`)
+}
+
+const getAttributions = () => {
+    if (allQuotes.length <= 0) {
+        loadQuotes()
+    }
+    return copyObject(allQuotes).map(x => x.authors.split(','))
+}
+
+const getLeaderboardString = () => {
+    if (allQuotes.length <= 0) {
+        loadQuotes()
+    }
+    const peopleMap = {}
+    const tally = (author, isGroup) => {
+        if (peopleMap[author] === undefined) {
+            peopleMap[author] = {
+                numQuotes: 0,
+                groupQuotes: 0,
+                soloQuotes: 0
+            }
+        }
+        peopleMap[author].numQuotes += 1
+        if (isGroup) {
+            peopleMap[author].groupQuotes += 1
+        } else {
+            peopleMap[author].soloQuotes += 1
+        }
+    }
+    allQuotes.forEach(quote => {
+        if (quote.isGroup) {
+            let authors = quote.authors.split(',')
+            authors.forEach(x => tally(x, true))
+        } else {
+            tally(quote.authors, false)
+        }
+    })
+    let leaderboard = Object.keys(peopleMap)
+    leaderboard.sort((a, b) => {
+        if (peopleMap[a].numQuotes !== peopleMap[b].numQuotes) {
+            return (peopleMap[b].numQuotes - peopleMap[a].numQuotes)
+        }
+        return (peopleMap[a].groupQuotes - peopleMap[b].groupQuotes)
+    })
+    let leaderboardString = ''
+    leaderboard.forEach((x, n) => {
+        if (n > 0) {
+            leaderboardString += '\r\n'
+        }
+        leaderboardString = `${leaderboardString}${n + 1}. ${x} (${peopleMap[x].numQuotes} quotes, ${peopleMap[x].soloQuotes} solo)`
+    })
+    return leaderboardString
+}
+
+const getRandomQuote = () => {
+    if (allQuotes.length <= 0) {
+        loadQuotes()
+    }
+    return copyObject(randomArrayItem(allQuotes))
+}
+
+const getGame = () => {
+    if (allQuotes.length <= 0) {
+        loadQuotes()
+    }
+    const game = {
+        options: [],
+        quote: {
+            isGroup: true
+        }
+    }
+    while (game.quote.isGroup) {
+        game.quote = getRandomQuote()
+    }
+    game.options.push(game.quote.authors)
+    let text = game.quote.quote
+    if (text.includes('~')) {
+        game.quote.quote = text.slice(0, text.lastIndexOf('~'))
+    }
+    else {
+        game.quote.quote = text.slice(0, text.lastIndexOf('-'))
+    }
+
+    while (game.options.length < 5) {
+        let quote = getRandomQuote()
+        if (!quote.isGroup && !game.options.includes(quote.authors)) {
+            game.options.push(quote.authors)
+        }
+    }
+    return game
+}
+
+module.exports = {
+    loadQuotes,
+    getRandomQuote,
+    getGame,
+    getLeaderboardString,
+    getAttributions,
+    getAllQuotes: () => {
+        if (allQuotes.length <= 0) {
+            loadQuotes()
+        }
+        return copyObject(allQuotes)
+    }
+}

@@ -1,0 +1,6 @@
+temp.txt
+*.db
+/node_modules
+config.json
+*.pem
+/web_test
