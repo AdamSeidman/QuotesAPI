@@ -126,11 +126,11 @@ const processGET_search = query => {
     if (query === undefined || typeof query.str != 'string') {
         return 400
     }
-    let searchStr = stripPunctuation(query.str).replaceAll(' ').trim()
+    let searchStr = stripPunctuation(query.str).trim().toLowerCase()
     let allQuotes = quotes.getAllQuotes()
     if (searchStr.length > 0) {
         allQuotes.forEach((x, n) => {
-            allQuotes[n].reduced = stripPunctuation(x.quote).replaceAll(' ', '').trim()
+            allQuotes[n].reduced = stripPunctuation(x.quote).trim().toLowerCase()
         })
         allQuotes = allQuotes.filter(x => x.reduced.includes(searchStr))
         allQuotes.forEach((x, n) => {
