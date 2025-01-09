@@ -1,10 +1,11 @@
 const fs = require('fs')
 const cors = require('cors')
 const https = require('https')
+const config = require('./config')
 const express = require('express')
 const bodyParser = require('body-parser')
 const quotes = require('./quotes/quotes')
-const { stripPunctuation } = require('poop-sock')
+const { copyObject, stripPunctuation } = require('poop-sock')
 
 // const port = 8008 // TODO remove dev items
 const port = 443
@@ -43,10 +44,10 @@ const checkPerms = (request, level) => {
         return 400
     }
     if (level === LEVEL_ADMIN) {
-        if (request.query.pwd === 'pass2') {
+        if (request.query.pwd === config.adminPassword) {
             return 200
         }
-        else if (request.query.pwd === 'pass1') {
+        else if (request.query.pwd === config.generalPassword) {
             return 401
         }
         else {
@@ -54,7 +55,7 @@ const checkPerms = (request, level) => {
         }
     }
     else if (level === LEVEL_GENERAL) {
-        if (request.query.pwd === 'pass1' || request.query.pwd === 'pass2') {
+        if (request.query.pwd === config.generalPassword || request.query.pwd === config.adminPassword) {
             return 200
         }
         else {
@@ -144,6 +145,18 @@ const processGET_search = query => {
     return res
 }
 
+// const processGET_pseudos = () => {
+//     const res = {
+//         result: {
+//             default: "None"
+//         }
+//     }
+//     if (fs.existsSync(__dirname + '/pseudonyms.json')) {
+//         res.result = copyObject(require('./pseudonyms'))
+//     }
+//     return res
+// }
+
 const processPOST_quote = async body => {
     if (body.quote === undefined || body.authors === undefined) {
         return 400
@@ -203,6 +216,7 @@ const httpGETTable = [
     { endpoint: 'game', perms: LEVEL_GENERAL, fn: processGET_game },
     { endpoint: 'leaderboard', perms: LEVEL_GENERAL, fn: processGET_leaderboard },
     { endpoint: 'attributions', perms: LEVEL_GENERAL, fn: processGET_attributions },
+    // { endpoint: 'pseudos', perms: LEVEL_GENERAL, fn: processGET_pseudos },
     { endpoint: 'search', perms: LEVEL_GENERAL, fn: processGET_search }
 ]
 
