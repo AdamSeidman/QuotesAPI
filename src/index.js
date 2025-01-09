@@ -5,9 +5,9 @@ const config = require('./config')
 const express = require('express')
 const bodyParser = require('body-parser')
 const quotes = require('./quotes/quotes')
-const { copyObject, stripPunctuation } = require('poop-sock')
+const { bestGuess } = require('./quotes/names')
+const { stripPunctuation } = require('poop-sock')
 
-// const port = 8008 // TODO remove dev items
 const port = 443
 const maxQuotes = 10
 
@@ -25,8 +25,8 @@ app.use(cors())
 
 var jsonParser = bodyParser.json()
 
-// var server = require('http').createServer(app).listen(port, '0.0.0.0', () => {
-var server = https.createServer(options, app).listen(port, '0.0.0.0', () => {
+// require('http').createServer(app).listen(port, '0.0.0.0', () => {
+https.createServer(options, app).listen(port, '0.0.0.0', () => {
     console.log(`Express server listening on port ${port}`)
 })
 
@@ -145,17 +145,20 @@ const processGET_search = query => {
     return res
 }
 
-// const processGET_pseudos = () => {
-//     const res = {
-//         result: {
-//             default: "None"
-//         }
-//     }
-//     if (fs.existsSync(__dirname + '/pseudonyms.json')) {
-//         res.result = copyObject(require('./pseudonyms'))
-//     }
-//     return res
-// }
+const processGET_guess = query => {
+    if (query === undefined || query.names === undefined) {
+        return 400
+    }
+    let names = query.names.split(',')
+    if ( !Array.isArray(names) || names.length < 1) {
+        return 400
+    }
+    let results = {}
+    names.forEach(name => {
+        results[name] = bestGuess(name)
+    })
+    return results
+}
 
 const processPOST_quote = async body => {
     if (body.quote === undefined || body.authors === undefined) {
@@ -216,7 +219,7 @@ const httpGETTable = [
     { endpoint: 'game', perms: LEVEL_GENERAL, fn: processGET_game },
     { endpoint: 'leaderboard', perms: LEVEL_GENERAL, fn: processGET_leaderboard },
     { endpoint: 'attributions', perms: LEVEL_GENERAL, fn: processGET_attributions },
-    // { endpoint: 'pseudos', perms: LEVEL_GENERAL, fn: processGET_pseudos },
+    { endpoint: 'guess', perms: LEVEL_ADMIN, fn: processGET_guess },
     { endpoint: 'search', perms: LEVEL_GENERAL, fn: processGET_search }
 ]
 
