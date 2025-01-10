@@ -52,6 +52,38 @@ const bestGuess = (name) => {
     return [name]
 }
 
+const allGuesses = (name) => {
+    let results = []
+    if (Array.isArray(name)) {
+        name = name[0]
+    }
+    if (typeof name != 'string') {
+        return results
+    }
+    results.push(bestGuess(name))
+    let rawName = stripPunctuation(name.toLowerCase()).trim().replaceAll(' ', '')
+    if (rawName.length < 1) {
+        if (!results.includes(pseudoMap.default)) {
+            results.push(pseudoMap.default)
+        }
+        return results
+    }
+    Object.keys(pseudoMap).forEach(key => {
+        if (!results.includes(pseudoMap[key])) {
+            let value = stripPunctuation(pseudoMap[key].toLowerCase()).trim().replaceAll(' ', '')
+            let keyCopy = stripPunctuation(key.toLowerCase()).trim().replaceAll(' ', '')
+            if (rawName.includes(keyCopy) || rawName.includes(value) || value.includes(rawName) || keyCopy.includes(rawName)) {
+                results.push(pseudoMap[key])
+            }
+        }
+    })
+    if (!results.includes(pseudoMap.default)) {
+        results.push(pseudoMap.default)
+    }
+    return results
+}
+
 module.exports = {
-    bestGuess
+    bestGuess,
+    allGuesses
 }

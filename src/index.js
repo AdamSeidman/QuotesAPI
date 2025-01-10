@@ -5,8 +5,8 @@ const config = require('./config')
 const express = require('express')
 const bodyParser = require('body-parser')
 const quotes = require('./quotes/quotes')
-const { bestGuess } = require('./quotes/names')
 const { stripPunctuation } = require('poop-sock')
+const { bestGuess, allGuesses } = require('./quotes/names')
 
 const port = 443
 const maxQuotes = 10
@@ -150,13 +150,22 @@ const processGET_guess = query => {
         return 400
     }
     let names = query.names.split(',')
-    if ( !Array.isArray(names) || names.length < 1) {
+    if (!Array.isArray(names) || names.length < 1) {
         return 400
     }
     let results = {}
-    names.forEach(name => {
-        results[name] = bestGuess(name)
-    })
+    if (query.verbose) {
+        if (names.length > 1) {
+            return 400
+        }
+        results.best = bestGuess(name)
+        results.allGuesses = allGuesses(name)
+    }
+    else {
+        names.forEach(name => {
+            results[name] = bestGuess(name)
+        })
+    }
     return results
 }
 
