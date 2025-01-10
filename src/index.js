@@ -242,7 +242,7 @@ httpGETTable.forEach(item => {
             response.send(res)
         }
         else {
-            console.error(`\tReturn status code: ${ret}`)
+            console.error(`\tReturn status code: ${res}`)
             return response.status(res).json({})
         }
     })
