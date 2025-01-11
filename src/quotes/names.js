@@ -60,7 +60,11 @@ const allGuesses = (name) => {
     if (typeof name != 'string') {
         return results
     }
-    results.push(bestGuess(name))
+    let initGuess = bestGuess(name)
+    if (Array.isArray(initGuess)) {
+        initGuess = initGuess[0]
+    }
+    results.push(initGuess)
     let rawName = stripPunctuation(name.toLowerCase()).trim().replaceAll(' ', '')
     if (rawName.length < 1) {
         if (!results.includes(pseudoMap.default)) {

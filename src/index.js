@@ -158,8 +158,11 @@ const processGET_guess = query => {
         if (names.length > 1) {
             return 400
         }
-        results.best = bestGuess(name)
-        results.allGuesses = allGuesses(name)
+        results.best = bestGuess(names[0])
+        if (Array.isArray(results.best)) {
+            results.best = results.best[0]
+        }
+        results.allGuesses = allGuesses(names[0])
     }
     else {
         names.forEach(name => {
