@@ -214,7 +214,7 @@ const processPOST_vote = async (body, isElevated) => {
         return 400
     }
     try {
-        // await quotes.vote(body.yesId, body.noId, (perms === LEVEL_ADMIN)) // TODO
+        await quotes.vote(body.yesId, body.noId, isElevated)
     } catch (error) {
         console.error(error)
         return 500
@@ -229,7 +229,8 @@ const httpGETTable = [
     { endpoint: 'leaderboard', perms: LEVEL_GENERAL, fn: processGET_leaderboard },
     { endpoint: 'attributions', perms: LEVEL_GENERAL, fn: processGET_attributions },
     { endpoint: 'guess', perms: LEVEL_ADMIN, fn: processGET_guess },
-    { endpoint: 'search', perms: LEVEL_GENERAL, fn: processGET_search }
+    { endpoint: 'search', perms: LEVEL_GENERAL, fn: processGET_search },
+    { endpoint: 'all', perms: LEVEL_GENERAL, fn: () => processGET_search({str: ""}) }
 ]
 
 const httpPOSTTable = [

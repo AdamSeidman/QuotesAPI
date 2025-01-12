@@ -164,6 +164,55 @@ const submitQuote = (quote, authors) => {
     })
 }
 
+const vote = (yesId, noId, isElevated) => {
+    if (allQuotes.length <= 0) {
+        loadQuotes()
+    }
+    let yesQuote = allQuotes.find(x => x.id === yesId)
+    let noQuote = allQuotes.find(x => x.id === noId)
+    let db = getDB()
+    return new Promise((resolve, reject) => {
+        if (yesQuote === undefined || noQuote === undefined || typeof isElevated != 'boolean') {
+            reject('Could not decipher information.')
+            return
+        }
+        if (isElevated) {
+            yesQuote.adminYesCount += 1
+            noQuote.adminNoCount += 1
+        } else {
+            yesQuote.generalYesCount += 1
+            noQuote.generalNoCount += 1
+        }
+
+        let error = undefined
+        db.run(`UPDATE Quotes SET adminYesCount = ?, adminNoCount = ?, generalYesCount = ?, generalNoCount = ? WHERE id=${yesQuote.id}`, [
+            yesQuote.adminYesCount, yesQuote.adminNoCount, yesQuote.generalYesCount, yesQuote.generalNoCount
+        ], err => {
+            if (err) {
+                error = err
+                db.close()
+                delete db
+            }
+        })
+        if (error) {
+            reject(error)
+            return
+        }
+        db.run(`UPDATE Quotes SET adminYesCount = ?, adminNoCount = ?, generalYesCount = ?, generalNoCount = ? WHERE id=${noQuote.id}`, [
+            noQuote.adminYesCount, noQuote.adminNoCount, noQuote.generalYesCount, noQuote.generalNoCount
+        ], err => {
+            db.close()
+            delete db
+            if (err) {
+                reject(err)
+            }
+            else {
+                resolve()
+            }
+        })
+    })
+}
+
 module.exports = {
     loadQuotes,
     getRandomQuote,
@@ -176,5 +225,6 @@ module.exports = {
         }
         return copyObject(allQuotes)
     },
-    submitQuote
+    submitQuote,
+    vote
 }
