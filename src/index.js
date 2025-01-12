@@ -85,7 +85,7 @@ app.get('/perms', (request, response) => {
 const processGET_quotes = query => {
     let numQuotes = 1
     if (query !== undefined && !isNaN(query.numQuotes)) {
-        numQuotes = parseInt(numQuotes)
+        numQuotes = parseInt(query.numQuotes)
     }
     numQuotes = Math.min(Math.max(0, numQuotes), maxQuotes)
     const res = {
@@ -210,14 +210,14 @@ const processPOST_vote = async (body, perms) => {
         return 422
     }
     let numQuotes = quotes.getAllQuotes().length
-    if (yesId < 1 || noId < 1 || yesId > numQuotes || noId > numQuotes) {
+    if (body.yesId < 1 || body.noId < 1 || body.yesId > numQuotes || body.noId > numQuotes) {
         return 400
     }
     if (perms !== LEVEL_ADMIN && perms !== LEVEL_GENERAL) {
         return 500
     }
     try {
-        // await quotes.vote(yesId, noId, (perms === LEVEL_ADMIN)) // TODO
+        // await quotes.vote(body.yesId, body.noId, (perms === LEVEL_ADMIN)) // TODO
     } catch (error) {
         console.error(error)
         return 500
@@ -270,7 +270,7 @@ httpPOSTTable.forEach(item => {
         }
         const res = await item.fn(request.body, perms, request.query, request.url)
         if (Math.floor(res / 100) != 2) {
-            console.error(`\tReturn status code: ${perms}`)
+            console.error(`\tReturn status code: ${res}`)
         }
         return response.status(res).json({})
     })
