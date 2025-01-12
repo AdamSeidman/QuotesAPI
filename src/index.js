@@ -31,9 +31,13 @@ https.createServer(options, app).listen(port, '0.0.0.0', () => {
 })
 
 app.get('/', (req, res) => {
-    res.status(200).send({
-        numQuotes: quotes.getAllQuotes().length
-    })
+    if (config.redirectURL !== undefined) {
+        res.redirect(config.redirectURL)
+    } else {
+        res.status(200).send({
+            numQuotes: quotes.getAllQuotes().length
+        })
+    }
 })
 
 const LEVEL_GENERAL = 1
