@@ -202,7 +202,7 @@ const processPOST_restart = () => {
     return 200
 }
 
-const processPOST_vote = async (body, perms) => {
+const processPOST_vote = async (body, isElevated) => {
     if (body.yesId === undefined || body.noId === undefined) {
         return 400
     }
@@ -212,9 +212,6 @@ const processPOST_vote = async (body, perms) => {
     let numQuotes = quotes.getAllQuotes().length
     if (body.yesId < 1 || body.noId < 1 || body.yesId > numQuotes || body.noId > numQuotes) {
         return 400
-    }
-    if (perms !== LEVEL_ADMIN && perms !== LEVEL_GENERAL) {
-        return 500
     }
     try {
         // await quotes.vote(body.yesId, body.noId, (perms === LEVEL_ADMIN)) // TODO
@@ -268,7 +265,7 @@ httpPOSTTable.forEach(item => {
             console.error(`\tReturn status code (Bad Auth): ${perms}`)
             return response.status(perms).json({})
         }
-        const res = await item.fn(request.body, perms, request.query, request.url)
+        const res = await item.fn(request.body, (checkPerms(request, LEVEL_ADMIN) === 200), request.query, request.url)
         if (Math.floor(res / 100) != 2) {
             console.error(`\tReturn status code: ${res}`)
         }
