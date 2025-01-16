@@ -176,7 +176,7 @@ const processGET_guess = query => {
     return results
 }
 
-const processPOST_quote = async body => {
+const processPOST_quote = async (body) => {
     if (body.quote === undefined || body.authors === undefined) {
         return 400
     }
@@ -197,6 +197,42 @@ const processPOST_quote = async body => {
         return 500
     }
     return 201
+}
+
+const processPOST_edit = async (body) => {
+    if (body.quote === undefined || body.authors === undefined || body.id === undefined) {
+        return 400
+    }
+    let authors = body.authors
+    if (Array.isArray(authors)) {
+        authors = body.authors.join(',')
+    }
+    else if (typeof authors != 'string') {
+        return 422
+    }
+    if (typeof body.quote != 'string') {
+        return 422
+    }
+    if (typeof body.id != 'number') {
+        try {
+            body.id = parseInt(body.id)
+        } catch (err) {
+            console.error('\tInvalid ID given:', body.id)
+        }
+        if (typeof body.id != 'number') {
+            return 422
+        }
+    }
+    if (body.id < 1 || body.id > (quotes.getAllQuotes().length)) {
+        return 400
+    }
+    try {
+        await quotes.editQuote(body.id, body.quote, authors)
+    } catch (err) {
+        console.error(err)
+        return 500
+    }
+    return 200
 }
 
 const processPOST_restart = () => {
@@ -240,7 +276,8 @@ const httpGETTable = [
 const httpPOSTTable = [
     { endpoint: 'quote', perms: LEVEL_ADMIN, fn: processPOST_quote },
     { endpoint: 'restart', perms: LEVEL_ADMIN, fn: processPOST_restart },
-    { endpoint: 'vote', perms: LEVEL_GENERAL, fn: processPOST_vote }
+    { endpoint: 'vote', perms: LEVEL_GENERAL, fn: processPOST_vote },
+    { endpoint: 'edit', perms: LEVEL_ADMIN, fn: processPOST_edit }
 ]
 
 httpGETTable.forEach(item => {

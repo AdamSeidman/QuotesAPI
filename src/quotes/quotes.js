@@ -164,6 +164,24 @@ const submitQuote = (quote, authors) => {
     })
 }
 
+const editQuote = (id, quote, authors) => {
+    let db = getDB()
+    return new Promise((resolve, reject) => {
+        db.run(`UPDATE Quotes SET quote = ?, authors = ?, isGroup = ? WHERE id=${id}`, [
+            quote, authors, (authors.includes(','))? 1 : 0
+        ], err => {
+            db.close()
+            delete db
+            if (err) {
+                reject(error)
+            }
+            else {
+                resolve()
+            }
+        })
+    })
+}
+
 const vote = (yesId, noId, isElevated) => {
     if (allQuotes.length <= 0) {
         loadQuotes()
@@ -226,5 +244,6 @@ module.exports = {
         return copyObject(allQuotes)
     },
     submitQuote,
+    editQuote,
     vote
 }
