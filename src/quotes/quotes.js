@@ -165,11 +165,11 @@ const submitQuote = (quote, authors) => {
     })
 }
 
-const editQuote = (id, quote, authors) => {
+const editQuote = (id, quote) => {
     let db = getDB()
     return new Promise((resolve, reject) => {
-        db.run(`UPDATE Quotes SET quote = ?, authors = ?, isGroup = ? WHERE id=${id}`, [
-            quote, authors, (authors.includes(','))? 1 : 0
+        db.run(`UPDATE Quotes SET quote = ? WHERE id=${id}`, [
+            quote
         ], err => {
             db.close()
             delete db
@@ -177,9 +177,7 @@ const editQuote = (id, quote, authors) => {
                 reject(error)
             }
             else {
-                let q = allQuotes.find(x => x.id === id)
-                q.quote = quote
-                q.authors = authors
+                allQuotes.find(x => x.id === id).quote = quote
                 backup(`Quote ${id} Edited`)
                 resolve()
             }

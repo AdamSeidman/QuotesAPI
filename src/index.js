@@ -200,15 +200,8 @@ const processPOST_quote = async (body) => {
 }
 
 const processPOST_edit = async (body) => {
-    if (body.quote === undefined || body.authors === undefined || body.id === undefined) {
+    if (body.quote === undefined || body.id === undefined) {
         return 400
-    }
-    let authors = body.authors
-    if (Array.isArray(authors)) {
-        authors = body.authors.join(',')
-    }
-    else if (typeof authors != 'string') {
-        return 422
     }
     if (typeof body.quote != 'string') {
         return 422
@@ -227,7 +220,7 @@ const processPOST_edit = async (body) => {
         return 400
     }
     try {
-        await quotes.editQuote(body.id, body.quote, authors)
+        await quotes.editQuote(body.id, body.quote)
     } catch (err) {
         console.error(err)
         return 500
