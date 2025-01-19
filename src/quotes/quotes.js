@@ -176,6 +176,9 @@ const editQuote = (id, quote, authors) => {
                 reject(error)
             }
             else {
+                let q = allQuotes.find(x => x.id === id)
+                q.quote = quote
+                q.authors = authors
                 resolve()
             }
         })
