@@ -1,3 +1,4 @@
+const { backup } = require('./backup')
 const sqlite3 = require('sqlite3').verbose()
 const { copyObject, randomArrayItem } = require('poop-sock')
 
@@ -36,6 +37,7 @@ const loadQuotes = async () => {
     const loadedText = (allQuotes.length > 0)? 'Re-loaded' : 'Loaded'
     allQuotes = await getAllQuotes()
     console.log(`${loadedText} ${allQuotes.length} quotes.`)
+    backup()
 }
 
 const getAttributions = () => {
@@ -156,6 +158,7 @@ const submitQuote = (quote, authors) => {
                 if (err) {
                     reject(err)
                 } else {
+                    backup(`Quote ${newQuote.id} Added`)
                     allQuotes.push(newQuote)
                     console.log(`\tNew Quote Added! (#${newQuote.id})`)
                     resolve(newQuote)
@@ -179,6 +182,7 @@ const editQuote = (id, quote, authors) => {
                 let q = allQuotes.find(x => x.id === id)
                 q.quote = quote
                 q.authors = authors
+                backup(`Quote ${id} Edited`)
                 resolve()
             }
         })
