@@ -134,19 +134,17 @@ const submitQuote = (quote, authors) => {
     const newQuote = {
         quote,
         authors,
-        adminYesCount: 0,
-        adminNoCount: 0,
-        generalYesCount: 0,
-        generalNoCount: 0,
+        elo: 2000,
+        numVotes: 0,
         isGroup: authors.includes(','),
         id: allQuotes.length + 1
     }
     let db = getDB()
     return new Promise((resolve, reject) => {
-        db.run(`INSERT INTO Quotes (quote, adminYesCount, adminNoCount, generalYesCount, generalNoCount, isGroup, authors, id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        db.run(`INSERT INTO Quotes (quote, elo, numVotes, isGroup, authors, id) VALUES (?, ?, ?, ?, ?, ?)`,
             [
                 newQuote.quote,
-                0, 0, 0, 0,
+                2000, 0,
                 (newQuote.isGroup? 1 : 0),
                 authors,
                 newQuote.id
@@ -189,6 +187,8 @@ const editQuote = (id, quote, authors) => {
     })
 }
 
+const eloKVal = 32
+
 const vote = (yesId, noId, isElevated) => {
     if (allQuotes.length <= 0) {
         loadQuotes()
@@ -201,17 +201,19 @@ const vote = (yesId, noId, isElevated) => {
             reject('Could not decipher information.')
             return
         }
-        if (isElevated) {
-            yesQuote.adminYesCount += 1
-            noQuote.adminNoCount += 1
-        } else {
-            yesQuote.generalYesCount += 1
-            noQuote.generalNoCount += 1
+        yesQuote.numVotes += 1
+        noQuote.numVotes += 1
+        let loser = noQuote.elo
+        let winner = yesQuote.elo
+        yesQuote.elo += Math.round(eloKVal * (1 - (1 / (1 + Math.pow(10, (loser - winner) / 400)))))
+        noQuote.elo += Math.round(eloKVal * (0 - (1 / (1 + Math.pow(10, (winner - loser) / 400)))))
+        if (noQuote.elo < 100) {
+            noQuote.elo = 100
         }
 
         let error = undefined
-        db.run(`UPDATE Quotes SET adminYesCount = ?, adminNoCount = ?, generalYesCount = ?, generalNoCount = ? WHERE id=${yesQuote.id}`, [
-            yesQuote.adminYesCount, yesQuote.adminNoCount, yesQuote.generalYesCount, yesQuote.generalNoCount
+        db.run(`UPDATE Quotes SET elo = ?, numVotes = ? WHERE id=${yesQuote.id}`, [
+            yesQuote.elo, yesQuote.numVotes
         ], err => {
             if (err) {
                 error = err
@@ -223,8 +225,8 @@ const vote = (yesId, noId, isElevated) => {
             reject(error)
             return
         }
-        db.run(`UPDATE Quotes SET adminYesCount = ?, adminNoCount = ?, generalYesCount = ?, generalNoCount = ? WHERE id=${noQuote.id}`, [
-            noQuote.adminYesCount, noQuote.adminNoCount, noQuote.generalYesCount, noQuote.generalNoCount
+        db.run(`UPDATE Quotes SET elo = ?, numVotes = ? WHERE id=${noQuote.id}`, [
+            noQuote.elo, noQuote.numVotes
         ], err => {
             db.close()
             delete db
