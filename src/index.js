@@ -1,6 +1,5 @@
 const fs = require('fs')
 const cors = require('cors')
-const https = require('https')
 const config = require('./config')
 const express = require('express')
 const bodyParser = require('body-parser')
@@ -8,27 +7,34 @@ const quotes = require('./quotes/quotes')
 const { stripPunctuation } = require('poop-sock')
 const { bestGuess, allGuesses } = require('./quotes/names')
 
-const port = 443
-const maxQuotes = 10
-
 quotes.loadQuotes()
-
-const options = {
-    key: fs.readFileSync(__dirname + '/cert/privatekey.pem', 'utf8'),
-    cert: fs.readFileSync(__dirname + '/cert/certificate.pem', 'utf8'),
-    ca: [ fs.readFileSync(__dirname + '/cert/origin_ca_ecc_root.pem', 'utf8'),
-        fs.readFileSync(__dirname + '/cert/origin_ca_rsa_root.pem', 'utf8') ],
-}
 
 var app = express()
 app.use(cors())
 
+var options = {}
 var jsonParser = bodyParser.json()
 
-// require('http').createServer(app).listen(port, '0.0.0.0', () => {
-https.createServer(options, app).listen(port, '0.0.0.0', () => {
-    console.log(`Express server listening on port ${port}`)
-})
+if (config.cert !== undefined) {
+    Object.keys(config.cert).forEach(x => {
+        if (Array.isArray(config.cert[x])) {
+            options[x] = []
+            config.cert[x].forEach(file => {
+                options[x].push(fs.readFileSync(__dirname + file, 'utf8'))
+            })
+        } else {
+            options[x] = fs.readFileSync(__dirname + config.cert[x], 'utf8')
+        }
+    })
+    require('https').createServer(options, app).listen(config.port, '0.0.0.0', () => {
+        console.log(`HTTPS express server listening on port ${config.port}`)
+    })
+}
+else {
+    app.listen(config.port, () => {
+        console.log(`Express server listening on port ${config.port}`)
+    })
+}
 
 app.get('/', (req, res) => {
     if (config.redirectURL !== undefined) {
@@ -87,6 +93,7 @@ app.get('/perms', (request, response) => {
 })
 
 const processGET_quotes = query => {
+    const maxQuotes = 10
     let numQuotes = 1
     if (query !== undefined && !isNaN(query.numQuotes)) {
         numQuotes = parseInt(query.numQuotes)
