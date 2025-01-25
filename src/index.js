@@ -1,5 +1,6 @@
 const fs = require('fs')
 const cors = require('cors')
+const path = require('path')
 const config = require('./config')
 const express = require('express')
 const bodyParser = require('body-parser')
@@ -37,7 +38,10 @@ else {
 }
 
 app.get('/', (req, res) => {
-    if (config.redirectURL !== undefined) {
+    if (config.useStatic) {
+        const filePath = path.join(__dirname, 'www/index.html')
+        res.sendFile(filePath)
+    } else if (config.redirectURL !== undefined) {
         res.redirect(config.redirectURL)
     } else {
         res.status(200).send({
@@ -45,6 +49,10 @@ app.get('/', (req, res) => {
         })
     }
 })
+
+if (config.useStatic) {
+    app.use(express.static(path.join(__dirname, 'www')))
+}
 
 const LEVEL_GENERAL = 1
 const LEVEL_ADMIN = 2
@@ -281,7 +289,7 @@ const httpPOSTTable = [
 ]
 
 httpGETTable.forEach(item => {
-    app.get(`/${item.endpoint}`, async (request, response) => {
+    app.get(`/api/${item.endpoint}`, async (request, response) => {
         console.log(`GET ${request.url}`)
         const perms = checkPerms(request, item.perms)
         if (perms !== 200) {
@@ -300,7 +308,7 @@ httpGETTable.forEach(item => {
 })
 
 httpPOSTTable.forEach(item => {
-    app.post(`/${item.endpoint}`, jsonParser, async (request, response) => {
+    app.post(`/api/${item.endpoint}`, jsonParser, async (request, response) => {
         console.log(`POST ${request.url}\r\n${JSON.stringify(request.body)}`)
         const perms = checkPerms(request, item.perms)
         if (perms !== 200) {
