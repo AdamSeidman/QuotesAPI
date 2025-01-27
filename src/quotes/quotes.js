@@ -44,7 +44,9 @@ const getAttributions = () => {
     if (allQuotes.length <= 0) {
         loadQuotes()
     }
-    return copyObject(allQuotes).map(x => x.authors.split(','))
+    let quotes = copyObject(allQuotes)
+    quotes.sort((a, b) => a.id - b.id)
+    return quotes.map(x => x.authors.split(','))
 }
 
 const getLeaderboardString = () => {
