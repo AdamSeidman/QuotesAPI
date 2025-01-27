@@ -164,6 +164,12 @@ const processGET_search = query => {
     return res
 }
 
+const processGET_words = () => {
+    return {
+        map: quotes.getWordMap()
+    }
+}
+
 const processGET_guess = query => {
     if (query === undefined || query.names === undefined) {
         return 400
@@ -278,7 +284,8 @@ const httpGETTable = [
     { endpoint: 'attributions', perms: LEVEL_GENERAL, fn: processGET_attributions },
     { endpoint: 'guess', perms: LEVEL_ADMIN, fn: processGET_guess },
     { endpoint: 'search', perms: LEVEL_GENERAL, fn: processGET_search },
-    { endpoint: 'all', perms: LEVEL_GENERAL, fn: () => processGET_search({str: ""}) }
+    { endpoint: 'all', perms: LEVEL_GENERAL, fn: () => processGET_search({str: ""}) },
+    { endpoint: 'words', perms: LEVEL_GENERAL, fn: processGET_words }
 ]
 
 const httpPOSTTable = [

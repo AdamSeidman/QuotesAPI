@@ -1,6 +1,6 @@
 const { backup } = require('./backup')
 const sqlite3 = require('sqlite3').verbose()
-const { copyObject, randomArrayItem } = require('poop-sock')
+const { copyObject, randomArrayItem, stripPunctuation } = require('poop-sock')
 
 var allQuotes = []
 
@@ -238,6 +238,48 @@ const vote = (yesId, noId, isElevated) => {
     })
 }
 
+const getWordMap = () => {
+    if (allQuotes.length <= 0) {
+        loadQuotes()
+    }
+    let wordMap = {}
+    allQuotes.forEach(quote => {
+        let text = quote.quote.split('\n')
+        if (!Array.isArray(text)) {
+            text = [text]
+        }
+        text.forEach(x => {
+            x = x.trim()
+            if (quote.isGroup) {
+                x = x.slice(x.indexOf(':') + 1)
+            } else if (x.includes('~')) {
+                x = x.slice(0, x.indexOf('~'))
+            } else {
+                x = x.slice(0, x.indexOf('-'))
+            }
+            x = x.replaceAll('"', ' ')
+            x = x.replaceAll('?', ' ')
+            x = x.replaceAll("'", '')
+            x = x.replaceAll(/[^\x20-\x7E]/g, '');
+            x = x.replaceAll(/\s*\(.*?\)\s*/g, ' ')
+            x = x.replaceAll(/\s*\*.*?\*\s*/g, ' ')
+            x = stripPunctuation(x).trim().toLowerCase()
+            x.split(' ').forEach(word => {
+                word = word.trim()
+                word = word.slice(0, 1).toUpperCase() + word.slice(1)
+                if (word.length > 0) {
+                    if (wordMap[word] === undefined) {
+                        wordMap[word] = 1
+                    } else {
+                        wordMap[word] += 1
+                    }
+                }
+            })
+        })
+    })
+    return wordMap
+}
+
 module.exports = {
     loadQuotes,
     getRandomQuote,
@@ -252,5 +294,6 @@ module.exports = {
     },
     submitQuote,
     editQuote,
-    vote
+    vote,
+    getWordMap
 }
