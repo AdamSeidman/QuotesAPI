@@ -2,8 +2,9 @@ const fs = require('fs')
 const quotes = require('./quotes')
 const { copyObject, stripPunctuation } = require('poop-sock')
 
+const DEFAULT_DEFAULT_NAME = 'Overheard or Other'
 const pseudoMap = {
-    default: 'Overheard or Other'
+    default: DEFAULT_DEFAULT_NAME
 }
 var loaded = false
 
@@ -20,7 +21,7 @@ const setupNames = () => {
             pseudoMap[key] = key
         })
     }
-    quotes.getAttributions().forEach(x => {
+    require('./quotes').getAttributions().forEach(x => {
         x.forEach(y => {
             let name = stripPunctuation(y.toLowerCase()).trim()
             if (pseudoMap[name] === undefined) {
@@ -87,7 +88,15 @@ const allGuesses = (name) => {
     return results
 }
 
+const getDefaultName = (name) => {
+    if (typeof pseudoMap.default == 'string') {
+        return pseudoMap.default
+    }
+    return DEFAULT_DEFAULT_NAME
+}
+
 module.exports = {
     bestGuess,
-    allGuesses
+    allGuesses,
+    getDefaultName
 }
