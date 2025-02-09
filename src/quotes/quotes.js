@@ -69,8 +69,8 @@ const createStats = () => {
                 peopleMap[author] = {
                     highestRankedQuote: { elo: -1 },
                     lowestRankedQuote: { elo: 9999999 },
-                    highestLeaderboardPosition: quote.length + 1,
-                    currentLeaderboardPosition: quote.length + 1,
+                    highestLeaderboardPosition: quotes.length + 1,
+                    currentLeaderboardPosition: quotes.length + 1,
                     numSolo: 0,
                     numQuotes: 0,
                     numGroup: 0,
