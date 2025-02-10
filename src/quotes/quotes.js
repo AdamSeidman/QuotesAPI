@@ -76,7 +76,7 @@ const createStats = () => {
                     numGroup: 0,
                     teamups: {},
                     wordsSpoken: {},
-                    firstQuoteId: quote.length + 1,
+                    firstQuoteId: quotes.length + 1,
                     lastQuoteId: -1,
                     sentences: []
                 }
