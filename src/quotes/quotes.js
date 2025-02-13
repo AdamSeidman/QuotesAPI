@@ -78,7 +78,9 @@ const createStats = () => {
                     wordsSpoken: {},
                     firstQuoteId: quotes.length + 1,
                     lastQuoteId: -1,
-                    sentences: []
+                    sentences: [],
+                    totalElo: 0,
+                    name: author
                 }
             }
         })
@@ -108,6 +110,7 @@ const createStats = () => {
                     leaderboardMap[author].numSolo += 1
                 }
             }
+            peopleMap[author].totalElo += quote.elo
             peopleMap[author].firstQuoteId = Math.min(quote.id, peopleMap[author].firstQuoteId)
             peopleMap[author].lastQuoteId = Math.max(quote.id, peopleMap[author].lastQuoteId)
             peopleMap[author].numQuotes += 1
