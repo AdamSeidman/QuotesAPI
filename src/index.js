@@ -295,7 +295,7 @@ const httpGETTable = [
     { endpoint: 'attributions', perms: LEVEL_GENERAL, fn: processGET_attributions },
     { endpoint: 'guess', perms: LEVEL_ADMIN, fn: processGET_guess },
     { endpoint: 'search', perms: LEVEL_GENERAL, fn: processGET_search },
-    { endpoint: 'all', perms: LEVEL_GENERAL, fn: processGET_all },
+    { endpoint: 'all', perms: LEVEL_GENERAL, fn: processGET_all, silent: true },
     { endpoint: 'words', perms: LEVEL_GENERAL, fn: processGET_words }
 ]
 
@@ -308,7 +308,9 @@ const httpPOSTTable = [
 
 httpGETTable.forEach(item => {
     app.get(`/api/${item.endpoint}`, async (request, response) => {
-        console.log(`GET ${request.url}`)
+        if (item.silent !== true) {
+            console.log(`GET ${request.url}`)
+        }
         const perms = checkPerms(request, item.perms)
         if (perms !== 200) {
             console.error(`\tReturn status code (Bad Auth): ${perms}`)
@@ -319,6 +321,9 @@ httpGETTable.forEach(item => {
             response.send(res)
         }
         else {
+            if (item.silent) {
+                console.log(`GET ${request.url}`)
+            }
             console.error(`\tReturn status code: ${res}`)
             return response.status(res).json({})
         }
