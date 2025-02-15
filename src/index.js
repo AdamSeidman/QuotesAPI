@@ -100,48 +100,6 @@ app.get('/perms', (request, response) => {
     response.send(resBody)
 })
 
-const processGET_quotes = query => {
-    const maxQuotes = 10
-    let numQuotes = 1
-    if (query !== undefined && !isNaN(query.numQuotes)) {
-        numQuotes = parseInt(query.numQuotes)
-    }
-    numQuotes = Math.min(Math.max(0, numQuotes), maxQuotes)
-    const res = {
-        numQuotes,
-        quotes: []
-    }
-    for (let i = 0; i < numQuotes; i++) {
-        let quote = undefined
-        while (quote === undefined || res.quotes.map(x => x.id).includes(quote.id)) {
-            quote = quotes.getRandomQuote()
-        }
-        res.quotes.push(quote)
-    }
-    return res
-}
-
-const processGET_game = () => {
-    return quotes.getGame()
-}
-
-const processGET_leaderboard = () => {
-    const res = {
-        leaderboardString: quotes.getLeaderboardString()
-    }
-    if (typeof res.leaderboardString != 'string') {
-        return 404
-    }
-    res.leaderboardString.replaceAll('\r\n', '<br>')
-    return res
-}
-
-const processGET_attributions = () => {
-    return {
-        orderedAuthors: quotes.getAttributions()
-    }
-}
-
 const processGET_search = query => {
     if (query === undefined || typeof query.str != 'string') {
         return 400
@@ -260,13 +218,6 @@ const processPOST_edit = async (body) => {
     return 200
 }
 
-const processPOST_restart = () => {
-    setTimeout(() => {
-        process.exit()
-    }, 1000)
-    return 200
-}
-
 const processPOST_vote = async (body, isElevated) => {
     if (body.yesId === undefined || body.noId === undefined) {
         return 400
@@ -288,11 +239,6 @@ const processPOST_vote = async (body, isElevated) => {
 }
 
 const httpGETTable = [
-    { endpoint: 'quote', perms: LEVEL_GENERAL, fn: () => processGET_quotes() },
-    { endpoint: 'quotes', perms: LEVEL_GENERAL, fn: processGET_quotes },
-    { endpoint: 'game', perms: LEVEL_GENERAL, fn: processGET_game },
-    { endpoint: 'leaderboard', perms: LEVEL_GENERAL, fn: processGET_leaderboard },
-    { endpoint: 'attributions', perms: LEVEL_GENERAL, fn: processGET_attributions },
     { endpoint: 'guess', perms: LEVEL_ADMIN, fn: processGET_guess },
     { endpoint: 'search', perms: LEVEL_GENERAL, fn: processGET_search },
     { endpoint: 'all', perms: LEVEL_GENERAL, fn: processGET_all, silent: true },
@@ -301,7 +247,6 @@ const httpGETTable = [
 
 const httpPOSTTable = [
     { endpoint: 'quote', perms: LEVEL_ADMIN, fn: processPOST_quote },
-    { endpoint: 'restart', perms: LEVEL_ADMIN, fn: processPOST_restart },
     { endpoint: 'vote', perms: LEVEL_GENERAL, fn: processPOST_vote },
     { endpoint: 'edit', perms: LEVEL_ADMIN, fn: processPOST_edit }
 ]
