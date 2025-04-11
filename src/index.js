@@ -240,21 +240,22 @@ const processPOST_vote = async (body, isElevated) => {
 
 const httpGETTable = [
     { endpoint: 'guess', perms: LEVEL_ADMIN, fn: processGET_guess },
-    { endpoint: 'search', perms: LEVEL_GENERAL, fn: processGET_search },
-    { endpoint: 'all', perms: LEVEL_GENERAL, fn: processGET_all, silent: true },
+    { endpoint: 'search', perms: LEVEL_GENERAL, fn: processGET_search, verbose: true },
+    { endpoint: 'all', perms: LEVEL_GENERAL, fn: processGET_all },
     { endpoint: 'words', perms: LEVEL_GENERAL, fn: processGET_words }
 ]
 
 const httpPOSTTable = [
     { endpoint: 'quote', perms: LEVEL_ADMIN, fn: processPOST_quote },
     { endpoint: 'vote', perms: LEVEL_GENERAL, fn: processPOST_vote },
-    { endpoint: 'edit', perms: LEVEL_ADMIN, fn: processPOST_edit }
+    { endpoint: 'edit', perms: LEVEL_ADMIN, fn: processPOST_edit, verbose: true }
 ]
 
 httpGETTable.forEach(item => {
     app.get(`/api/${item.endpoint}`, async (request, response) => {
-        if (item.silent !== true) {
-            console.log(`GET ${request.url}`)
+        const str = `GET ${request.url}`
+        if (item.verbose) {
+            console.log(str)
         }
         const perms = checkPerms(request, item.perms)
         if (perms !== 200) {
@@ -266,8 +267,8 @@ httpGETTable.forEach(item => {
             response.send(res)
         }
         else {
-            if (item.silent) {
-                console.log(`GET ${request.url}`)
+            if (!item.verbose) {
+                console.log(str)
             }
             console.error(`\tReturn status code: ${res}`)
             return response.status(res).json({})
@@ -277,16 +278,30 @@ httpGETTable.forEach(item => {
 
 httpPOSTTable.forEach(item => {
     app.post(`/api/${item.endpoint}`, jsonParser, async (request, response) => {
-        console.log(`POST ${request.url}\r\n${JSON.stringify(request.body)}`)
+        const str = `POST ${request.url}\r\n${JSON.stringify(request.body)}`
+        if (item.verbose) {
+            console.log(str)
+        }
         const perms = checkPerms(request, item.perms)
         if (perms !== 200) {
+            if (!item.verbose) {
+                console.log(str)
+            }
             console.error(`\tReturn status code (Bad Auth): ${perms}`)
             return response.status(perms).json({})
         }
         const res = await item.fn(request.body, (checkPerms(request, LEVEL_ADMIN) === 200), request.query, request.url)
         if (Math.floor(res / 100) != 2) {
+            if (!item.verbose) {
+                console.log(str)
+            }
             console.error(`\tReturn status code: ${res}`)
         }
         return response.status(res).json({})
     })
+})
+
+app.use((request, response) => {
+    console.warn(`Incoming 404: ${request.method} ${request.url}`)
+    return response.status(404).json({})
 })
