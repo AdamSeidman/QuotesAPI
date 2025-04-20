@@ -366,7 +366,7 @@ const submitQuote = (quote, authors) => {
                 } else {
                     backup(`Quote ${newQuote.id} Added`)
                     allQuotes.push(newQuote)
-                    console.log(`\tNew Quote Added! (#${newQuote.id})`)
+                    // console.log(`\tNew Quote Added! (#${newQuote.id})`)
                     resolve(newQuote)
                     createStats()
                 }
