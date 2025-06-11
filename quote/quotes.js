@@ -1,39 +1,10 @@
-const { backup } = require('./backup')
-const sqlite3 = require('sqlite3').verbose()
-const { getDefaultName, bestGuess } = require('./names')
-const { copyObject, randomArrayItem, stripPunctuation } = require('poop-sock')
+const { backup } = require("./backup")
+const { getDefaultName, bestGuess } = require("./names")
+const { copyObject, randomArrayItem, stripPunctuation } = require("logic-kit") // TODO DB
+const db = require("./tables/quotesDb")
 
-var allQuotes = []
-var stats = {}
-
-const getDB = () => {
-    return new sqlite3.Database(`${__dirname}\\..\\db\\quotes.db`)
-}
-
-const getAllQuotes = () => {
-    let db = getDB()
-    const close = db => {
-        if (db) db.close()
-    }
-    let quotes = []
-    return new Promise((resolve, reject) => {
-        db.each(`SELECT * FROM Quotes`, (err, row) => {
-            if (err) {
-                close(db)
-                delete db
-                reject(err)
-            } else {
-                let obj = copyObject(row)
-                obj.isGroup = (row.isGroup !== 0)
-                quotes.push(obj)
-            }
-        }, () => {
-            close(db)
-            delete db
-            resolve(quotes)
-        })
-    })
-}
+const eloKVal = 100
+let stats = {}
 
 const getInternalNameGuesses = (arr) => {
     let results = {}
@@ -48,12 +19,13 @@ const getInternalNameGuesses = (arr) => {
     return results
 }
 
-const createStats = () => {
-    if (allQuotes.length < 1) {
+const recreateStats = () => {
+    stats = {}
+    let quotes = db.get()
+    if (quotes.length < 1) {
         console.error('Error: Tried to call createStats to early!')
         return
     }
-    let quotes = copyObject(allQuotes)
     let peopleMap = {}
     let sentences = []
     quotes.sort((a, b) => a.id - b.id)
@@ -238,27 +210,17 @@ const createStats = () => {
     stats = copyObject(peopleMap)
 }
 
-const loadQuotes = async () => {
-    const loadedText = (allQuotes.length > 0)? 'Re-loaded' : 'Loaded'
-    allQuotes = await getAllQuotes()
-    console.log(`${loadedText} ${allQuotes.length} quotes.`)
-    backup()
-    createStats()
+const getStats = () => {
+    return stats
 }
 
 const getAttributions = () => {
-    if (allQuotes.length <= 0) {
-        loadQuotes()
-    }
-    let quotes = copyObject(allQuotes)
+    let quotes = db.get()
     quotes.sort((a, b) => a.id - b.id)
     return quotes.map(x => x.authors.split(','))
 }
 
 const getLeaderboardString = () => {
-    if (allQuotes.length <= 0) {
-        loadQuotes()
-    }
     const peopleMap = {}
     const tally = (author, isGroup) => {
         if (peopleMap[author] === undefined) {
@@ -275,7 +237,7 @@ const getLeaderboardString = () => {
             peopleMap[author].soloQuotes += 1
         }
     }
-    allQuotes.forEach(quote => {
+    db.get().forEach((quote) => {
         if (quote.isGroup) {
             let authors = quote.authors.split(',')
             authors.forEach(x => tally(x, true))
@@ -301,16 +263,10 @@ const getLeaderboardString = () => {
 }
 
 const getRandomQuote = () => {
-    if (allQuotes.length <= 0) {
-        loadQuotes()
-    }
-    return copyObject(randomArrayItem(allQuotes))
+    return copyObject(randomArrayItem(db.get()))
 }
 
 const getGame = () => {
-    if (allQuotes.length <= 0) {
-        loadQuotes()
-    }
     const game = {
         options: [],
         quote: {
@@ -339,73 +295,21 @@ const getGame = () => {
 }
 
 const submitQuote = (quote, authors) => {
-    const newQuote = {
-        quote,
-        authors,
-        elo: 2000,
-        numVotes: 0,
-        isGroup: authors.includes(','),
-        id: allQuotes.length + 1
-    }
-    let db = getDB()
-    return new Promise((resolve, reject) => {
-        db.run(`INSERT INTO Quotes (quote, elo, numVotes, isGroup, authors, id) VALUES (?, ?, ?, ?, ?, ?)`,
-            [
-                newQuote.quote,
-                2000, 0,
-                (newQuote.isGroup? 1 : 0),
-                authors,
-                newQuote.id
-            ], err => {
-                if (db) {
-                    db.close()
-                    delete db
-                }
-                if (err) {
-                    reject(err)
-                } else {
-                    backup(`Quote ${newQuote.id} Added`)
-                    allQuotes.push(newQuote)
-                    // console.log(`\tNew Quote Added! (#${newQuote.id})`)
-                    resolve(newQuote)
-                    createStats()
-                }
-            })
-    })
+    return db.submit(quote, authors)
 }
 
 const editQuote = (id, quote) => {
-    let db = getDB()
-    return new Promise((resolve, reject) => {
-        db.run(`UPDATE Quotes SET quote = ? WHERE id=${id}`, [
-            quote
-        ], err => {
-            db.close()
-            delete db
-            if (err) {
-                reject(error)
-            }
-            else {
-                allQuotes.find(x => x.id === id).quote = quote
-                backup(`Quote ${id} Edited`)
-                resolve()
-                createStats()
-            }
-        })
-    })
+    return db.editQuote(id, quote)
 }
 
-const eloKVal = 32
 
-const vote = (yesId, noId, isElevated) => {
-    if (allQuotes.length <= 0) {
-        loadQuotes()
-    }
+const vote = (yesId, noId) => {
+    let allQuotes = db.get()
     let yesQuote = allQuotes.find(x => x.id === yesId)
     let noQuote = allQuotes.find(x => x.id === noId)
     let db = getDB()
     return new Promise((resolve, reject) => {
-        if (yesQuote === undefined || noQuote === undefined || typeof isElevated != 'boolean') {
+        if (yesQuote === undefined || noQuote === undefined) {
             reject('Could not decipher information.')
             return
         }
@@ -419,39 +323,21 @@ const vote = (yesId, noId, isElevated) => {
             noQuote.elo = 100
         }
 
-        let error = undefined
-        db.run(`UPDATE Quotes SET elo = ?, numVotes = ? WHERE id=${yesQuote.id}`, [
-            yesQuote.elo, yesQuote.numVotes
-        ], err => {
-            if (err) {
-                error = err
-                db.close()
-                delete db
-            }
-        })
-        if (error) {
-            reject(error)
-            return
-        }
-        db.run(`UPDATE Quotes SET elo = ?, numVotes = ? WHERE id=${noQuote.id}`, [
-            noQuote.elo, noQuote.numVotes
-        ], err => {
-            db.close()
-            delete db
-            if (err) {
-                reject(err)
-            }
-            else {
+        db.setElo(yesQuote.numVotes, yesQuote.elo, yesQuote.id)
+            .then(() => {
+                return db.setElo(noQuote.numVotes, noQuote.elo, noQuote.id)
+            })
+            .then(() => {
                 resolve()
-            }
-        })
+            })
+            .catch((error) => {
+                reject(error)
+            })
     })
 }
 
 const getWordMap = () => {
-    if (allQuotes.length <= 0) {
-        loadQuotes()
-    }
+    let allQuotes = db.get()
     let wordMap = {}
     allQuotes.forEach(quote => {
         let text = quote.quote.split('\n')
@@ -491,22 +377,15 @@ const getWordMap = () => {
 }
 
 module.exports = {
-    loadQuotes,
     getRandomQuote,
     getGame,
     getLeaderboardString,
     getAttributions,
-    getAllQuotes: () => {
-        if (allQuotes.length <= 0) {
-            loadQuotes()
-        }
-        return copyObject(allQuotes)
-    },
+    getAllQuotes: () => db.get(),
     submitQuote,
     editQuote,
     vote,
     getWordMap,
-    getStats: () => {
-        return copyObject(stats)
-    }
+    getStats,
+    recreateStats
 }

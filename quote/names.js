@@ -1,6 +1,6 @@
 const fs = require('fs')
-const quotes = require('./quotes')
-const { copyObject, stripPunctuation } = require('poop-sock')
+// const quotes = require('./quotes') // TODO
+const { copyObject, stripPunctuation } = require('logic-kit')
 
 const DEFAULT_DEFAULT_NAME = 'Overheard or Other'
 const pseudoMap = {

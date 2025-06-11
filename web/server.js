@@ -1,48 +1,33 @@
-const fs = require('fs')
-const cors = require('cors')
-const path = require('path')
-const config = require('./config')
-const express = require('express')
-const bodyParser = require('body-parser')
-const quotes = require('./quotes/quotes')
-const { stripPunctuation } = require('poop-sock')
-const { bestGuess, allGuesses } = require('./quotes/names')
+const cors = require("cors")
+const path = require("path")
+const express = require("express")
+const bodyParser = require("body-parser")
+const quotes = require("../quote/quotes")
+const { stripPunctuation } = require("logic-kit")
+const { bestGuess, allGuesses } = require("../quote/names")
 
-quotes.loadQuotes()
-
-var app = express()
+let app = express()
 app.use(cors())
 
-var options = {}
-var jsonParser = bodyParser.json()
+// let options = {}
+let jsonParser = bodyParser.json()
 
-if (config.cert !== undefined) {
-    Object.keys(config.cert).forEach(x => {
-        if (Array.isArray(config.cert[x])) {
-            options[x] = []
-            config.cert[x].forEach(file => {
-                options[x].push(fs.readFileSync(__dirname + file, 'utf8'))
-            })
-        } else {
-            options[x] = fs.readFileSync(__dirname + config.cert[x], 'utf8')
-        }
-    })
-    require('https').createServer(options, app).listen(config.port, '0.0.0.0', () => {
-        console.log(`HTTPS express server listening on port ${config.port}`)
-    })
-}
-else {
-    app.listen(config.port, () => {
-        console.log(`Express server listening on port ${config.port}`)
-    })
-}
+const PORT = process.DEBUG? process.env.EXPRESS_PORT_ALT : process.env.EXPRESS_PORT
+const ADMIN_PASSWORD = process.DEBUG? process.env.ADMIN_PASSWORD_ALT : process.env.ADMIN_PASSWORD
+const GENERAL_PASSWORD = process.DEBUG? process.env.GENERAL_PASSWORD_ALT : process.env.GENERAL_PASSWORD
+
+const useStatic = true//!process.DEBUG // TODO
+
+app.listen(PORT, () => {
+    console.log(`Express server listening on port ${PORT}`)
+})
 
 app.get('/', (req, res) => {
-    if (config.useStatic) {
-        const filePath = path.join(__dirname, 'www/index.html')
+    if (useStatic) {
+        const filePath = path.join(__dirname, 'public/index.html')
         res.sendFile(filePath)
-    } else if (config.redirectURL !== undefined) {
-        res.redirect(config.redirectURL)
+    } else if (process.env.REDIRECT_URL !== undefined) {
+        res.redirect(process.env.REDIRECT_URL)
     } else {
         res.status(200).send({
             numQuotes: quotes.getAllQuotes().length
@@ -50,8 +35,8 @@ app.get('/', (req, res) => {
     }
 })
 
-if (config.useStatic) {
-    app.use(express.static(path.join(__dirname, 'www')))
+if (useStatic) {
+    app.use(express.static(path.join(__dirname, 'public')))
 }
 
 const LEVEL_GENERAL = 1
@@ -62,10 +47,10 @@ const checkPerms = (request, level) => {
         return 400
     }
     if (level === LEVEL_ADMIN) {
-        if (request.query.pwd === config.adminPassword) {
+        if (request.query.pwd === ADMIN_PASSWORD) {
             return 200
         }
-        else if (request.query.pwd === config.generalPassword) {
+        else if (request.query.pwd === GENERAL_PASSWORD) {
             return 401
         }
         else {
@@ -73,7 +58,7 @@ const checkPerms = (request, level) => {
         }
     }
     else if (level === LEVEL_GENERAL) {
-        if (request.query.pwd === config.generalPassword || request.query.pwd === config.adminPassword) {
+        if (request.query.pwd === GENERAL_PASSWORD || request.query.pwd === ADMIN_PASSWORD) {
             return 200
         }
         else {
@@ -134,7 +119,7 @@ const processGET_all = query => {
     }
     let results = processGET_search({str: ""})
     if (query.includeStats) {
-        results.stats = quotes.getStats()
+        results.stats = quotes.getStats() // TODO
     }
     return results
 }
