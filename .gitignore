@@ -10,3 +10,4 @@ config.json
 /src/www
 /backups
 .env
+/temp
