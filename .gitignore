@@ -8,3 +8,5 @@ config.json
 pseudonyms.json
 config.json
 /src/www
+/backups
+.env

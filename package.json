@@ -9,11 +9,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@sendgrid/mail": "^8.1.4",
+    "@adamseidman/logger": "^1.0.0",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "express": "^4.21.2",
-    "poop-sock": "^1.0.7",
-    "sqlite3": "^5.1.7"
+    "logic-kit": "^1.0.1"
   }
 }
